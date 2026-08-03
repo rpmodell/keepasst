@@ -1,0 +1,138 @@
+.TH KEEPASST 1 "2026-07-27" "keepasst 0.1" "User Manual"
+
+.SH NAME
+keepasst - terminal UI keepass compatible password manager
+
+.SH SYNOPSIS
+.B keepasst
+[-h]
+.I <file>
+
+.SH DESCRIPTION
+keepasst is a terminal UI keepass compatible password manager that allows you to manage your passwords securely in the terminal.
+
+
+.SH OPTIONS
+.TP
+-h
+Shows the help message and exits.
+
+Specify the kdbx4 file to open. If no file is specified, a new database will be created.
+
+
+.SH NAVIGATION
+To move between sections (columns) the user must use the 
+.I left 
+and 
+.I right 
+arrow keys. 
+To select a item listed in a section the user must use the 
+.I up
+and
+.I down 
+arrow keys.
+The command bar is located at the bottom of the screen and in
+.I normal mode 
+the shortcuts for the actions are shown based on the current section.
+The keepasst tui is divided into three separate sections:
+.RS
+.TP 
+.B Groups
+This section contains the list of the groups
+.TP
+.B Entries
+This section contains the list of the entries associated to the previously selected group
+.TP
+.B Entry
+The section contains all the values of the currently selected entry.
+It is also possible to edit the entry in this section.
+.RE
+
+.SH COMMAND MODE
+The command mode is activated using / each command heve the following structure:
+
+.RS
+/command subcommand [arguments...]
+.RE
+
+All the commands are applied on the current selected objects. The available commands are:
+ 
+.TP
+.B /quit
+Quit the application.
+
+
+.TP
+.B /group
+[add|del|rename|setexpiry|unsetexpiry]
+
+.RS
+.TP
+.B add <name>
+Add a new group.
+
+.TP
+.B del
+Delete a group.
+
+.TP
+.B rename <newname>
+Rename a group.
+
+.TP
+.B setexpiry <date>
+Set the expiration date of a group. Using keepasst
+.I date format
+
+.RE
+.TP
+.B /entry
+[add|del|rename|setexpiry|unsetexpiry]
+
+.RS
+.TP
+.B add <name>
+Add a new entry.
+
+.TP
+.B del
+Delete an entry.
+
+.TP
+.B rename <newname>
+Rename an entry.
+
+.TP
+.B setexpiry <date>
+Set the expiration date of an entry. Using keepasst
+.I date format
+.RE
+
+.TP
+.B /write <file>
+Write the database. If ile argument is specified the new path becomes the current adtabase path.
+
+.TP
+.B /set 
+[compressed|kdf|password]
+
+.RS
+.TP
+.B compressed [yes|no]
+Set if the database will use compression. Compression is enabled by default.
+
+.TP
+.B kdf [argon2|argon2id|aes]
+Set the key derivation function. Default is argon2, eas type has proven to be insecure so its use is discouraged.
+
+.TP
+.B password
+Set a new password.
+
+.RE
+.SH TIME FORMAT
+The time format used by keepasst is year/month/dayThour:minute:seconds.
+
+.SH AUTHOR
+rpmodell (rpmodell@proton.me)
+
