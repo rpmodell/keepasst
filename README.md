@@ -10,7 +10,6 @@ credentials.
 
 - TUI interface powered by ncurses
 - Read and write KeePass2 (`.kdbx`) databases
-- Full-text search across entries
 - Copy passwords and usernames to the clipboard
 - Keyboard-driven navigation
 - Native support for modern KDBX key derivation (Argon2)
