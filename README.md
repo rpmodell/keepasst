@@ -81,4 +81,4 @@ You will be prompted for your master password. Once unlocked, use the on-screen
 key bindings to navigate, search, and edit entries.
 
 ## Screenshot
-![keepasst screenshot](docs/screenshot.png)
+![keepasst screenshot](screenshot.png)
