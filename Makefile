@@ -1,6 +1,6 @@
 CC=cc
-CFLAGS=-std=c99 -D_DEFAULT_SOURCE -D_XOPEN_SOURCE=600 -Wstrict-prototypes -pedantic -I/usr/include/libxml2
-LDFLAGS=-lcrypto -largon2 -lz -lxml2 -lncurses
+CFLAGS=-std=c99 -D_DEFAULT_SOURCE -Wstrict-prototypes -pedantic -I/usr/include/libxml2 -I/usr/local/include/libxml2 -I/usr/local/include
+LDFLAGS=-L/usr/local/lib -lcrypto -largon2 -lz -lxml2 -lncurses
 
 OBJECTS=kdbx.o crypto.o keepasst.o
 SRC_DIR=src

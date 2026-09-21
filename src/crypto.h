@@ -14,8 +14,7 @@
 char *str_clone(const char *str);
 
 void *crypto_secure_malloc(size_t sz);
-void *crypto_secure_realloc(void *p, size_t sz);
-void crypto_secure_free(void *ptr);
+void crypto_secure_free(void *ptr, size_t size);
 
 int crypto_fill_rand_buf(uint8_t *buf, size_t len);
 

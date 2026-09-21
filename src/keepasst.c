@@ -40,6 +40,19 @@
 #include <sys/stat.h>
 #include <ctype.h>
 
+#include <sys/mman.h>
+#if defined(__linux__)
+#include <linux/prctl.h>
+#include <sys/prctl.h>
+#elif defined(__FreeBSD__)
+#include <sys/types.h>
+#include <sys/time.h>
+#include <sys/resource.h>
+#elif defined(__OpenBSD__)
+#include <unistd.h>
+#include <sys/resource.h>
+#endif
+
 #include <curses.h>
 #include <openssl/crypto.h>
 
@@ -182,7 +195,7 @@ static inline void resize_window(WINDOW *win, int width, int height, int startx,
 int input_prompt(WINDOW *win, const char *title, const char *prompt, int hidden, char *out, ssize_t outlen)
 {
 	ssize_t i;
-	int start, ch;
+    int ch;
 
 	wclear(win);
 	box(win, 0, 0);
@@ -220,8 +233,7 @@ int input_prompt(WINDOW *win, const char *title, const char *prompt, int hidden,
 	}
 
 	out[i] = '\0';
-
-
+    return 0;
 }
 
 static int head_refresh(struct kpt_ctx *ctx)
@@ -229,9 +241,10 @@ static int head_refresh(struct kpt_ctx *ctx)
 	int px = getmaxx(ctx->head_win) - (ctx->db_path ? strlen(ctx->db_path) : 4) - 2;
 	wclear(ctx->head_win);
 	wbkgd(ctx->head_win, COLOR_PAIR(1));
-	wprintw(ctx->head_win, "keepasst v0.1", ctx->db_path);
+    wprintw(ctx->head_win, "keepasst v0.1");
 	mvwprintw(ctx->head_win, 0, px, "[%s]", ctx->db_path ? ctx->db_path : "null");
 	wrefresh(ctx->head_win);
+    return 0;
 }
 
 
@@ -260,6 +273,7 @@ static int groups_refresh(WINDOW *win, int current, int sel, KDBX *db)
 			SEL_ATTROFF(win, current, WGROUPS);
 	}
 	wrefresh(win);
+    return 0;
 }
 
 
@@ -327,6 +341,7 @@ static int entries_refresh(WINDOW *win, KDBXGroup *group, int current, int sel)
 	}
 
 	wrefresh(win);
+    return 0;
 }
 
 
@@ -500,7 +515,7 @@ static int write_db(struct kpt_ctx *ctx, KDBX *db)
 
 	kdbx_generate_salts(db);
 	ret = kdbx_write(db, ctx->db_path, pass);
-	crypto_secure_free(pass);
+    crypto_secure_free(pass, strlen(pass) + 1);
 
 	return ret;
 }
@@ -508,21 +523,20 @@ static int write_db(struct kpt_ctx *ctx, KDBX *db)
 static int choose_password(struct kpt_ctx *ctx, KDBX *db)
 {
 	int i, ret;
-	char *pwdbuf = crypto_secure_malloc(PASS_BUF_MAX);
-	char *pwdbuf2 = crypto_secure_malloc(PASS_BUF_MAX);
-	KDBXGroup *root = NULL;
+    char *pwdbuf = (char*) crypto_secure_malloc(PASS_BUF_MAX);
+    char *pwdbuf2 = (char*) crypto_secure_malloc(PASS_BUF_MAX);
 	WINDOW *pass_win = new_dialog(40, 7);
-	memset(pwdbuf, 0, sizeof(pwdbuf));
-	memset(pwdbuf2, 0, sizeof(pwdbuf));
+    memset(pwdbuf, 0, PASS_BUF_MAX);
+    memset(pwdbuf2, 0, PASS_BUF_MAX);
 
 	for (i = 0; i < 3; i++) {
 		if (input_prompt(pass_win, "Choose a password", "Password", 1, pwdbuf, PASS_BUF_MAX)) {
-			//ret = -1;
-			//break;
+            ret = -1;
+            break;
 		}
 		if (input_prompt(pass_win, "Choose a pasword", "Confirm password", 1, pwdbuf2, PASS_BUF_MAX)) {
-			//ret = -1;
-			//break;
+            ret = -1;
+            break;
 		}
 
 		if ((ret = strcmp(pwdbuf, pwdbuf2)) == 0)
@@ -532,8 +546,8 @@ static int choose_password(struct kpt_ctx *ctx, KDBX *db)
 	if (ret == 0) 
 		set_password(ctx, pwdbuf);
 
-	crypto_secure_free(pwdbuf);
-	crypto_secure_free(pwdbuf2);
+    crypto_secure_free(pwdbuf, PASS_BUF_MAX);
+    crypto_secure_free(pwdbuf2, PASS_BUF_MAX);
 	delwin(pass_win);
 	return ret;
 }
@@ -851,14 +865,13 @@ static int open_db(struct kpt_ctx *ctx, KDBX *db, const char *dbpath)
 		set_password(ctx, pwdbuf);
 	}
 
-	crypto_secure_free(pwdbuf);
+    crypto_secure_free(pwdbuf, PASS_BUF_MAX);
 	delwin(pass_win);
 	return ret;
 }
 
 static int create_db(struct kpt_ctx *ctx, KDBX *db, const char *dbpath)
 {
-	int i, ret;
 	KDBXGroup *root = NULL;
 	if (choose_password(ctx, db))
 		return -1;
@@ -878,11 +891,29 @@ int main(int argc, char **argv)
 		exit(0);
 	}
 
+    if (mlockall(MCL_CURRENT | MCL_FUTURE) == EPERM)
+        die("cannot lock process memory");
+
+#if defined(__linux__)
+    prctl(PR_SET_DUMPABLE, 0);
+#elif defined (__FreeBSD__)
+    struct rlimit lim;
+    lim.rlim_cur = 0;
+    lim.rlim_max = 0;
+    setrlimit(RLIMIT_CORE, &lim);
+#elif defined(__OpenBSD__)
+    struct rlimit lim;
+    lim.rlim_cur = 0;
+    lim.rlim_max = 0;
+    setrlimit(RLIMIT_CORE, &lim);
+
+    pledge("stdio rpath wpath cpath tty", NULL);
+#endif
+
 	KDBX db;
 	kdbx_init(&db);
 
 	int xmax, ymax, key, ret = 0;
-	char pwdbuf[512];
 
 	initscr();
 	cbreak();

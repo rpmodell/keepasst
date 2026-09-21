@@ -31,9 +31,12 @@
 #ifndef __KDBX_H__
 #define __KDBX_H__
 
+#ifdef __linux__
+#define _XOPEN_SOURCE 600
+#endif
+#include <time.h>
 #include <stdint.h>
 #include <stddef.h>
-#include <time.h>
 #include <sys/types.h>
 
 #define KDBX_GENERATOR "keepasst"

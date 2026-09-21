@@ -2,20 +2,25 @@
 
 #include "crypto.h"
 
-#include <openssl/cryptoerr_legacy.h>
 #include <stdio.h>
 #include <string.h>
+#ifdef __FreeBSD__
+#include <strings.h>
+#endif
+
 #include <sys/types.h>
 #include <sys/param.h>
 
 #include <argon2.h>
-#include <openssl/core_names.h>
 #include <openssl/err.h>
-#include <openssl/params.h>
 #include <openssl/sha.h>
 #include <openssl/aes.h>
 #include <openssl/hmac.h>
 #include <openssl/crypto.h>
+
+#ifndef LIBRESSL_VERSION_NUMBER
+#define USE_SECURE_MALLOC 1
+#endif
 
 #define RAND_BUF_LEN 16
 #define CHACHA20_IV_LEN 12
@@ -48,34 +53,30 @@ char *str_clone(const char *str)
 
 void *crypto_secure_malloc(size_t sz)
 {
+#ifdef USE_SECURE_MALLOC
 	if (!CRYPTO_secure_malloc_initialized()) {
 		if (!CRYPTO_secure_malloc_init(65536, 32))
 			return NULL;
 	}
 
 	return OPENSSL_secure_malloc(sz);
+#else
+    return malloc(sz);
+#endif
 }
 
-
-void *crypto_secure_realloc(void *p, size_t sz)
+void crypto_secure_free(void *ptr, size_t psz)
 {
-	if (!CRYPTO_secure_malloc_initialized())
-		return crypto_secure_malloc(sz);
-
-	size_t psz = OPENSSL_secure_actual_size(p);
-	if (psz >= sz)
-		return p;
-
-	crypto_secure_free(p);
-	return crypto_secure_malloc(sz);
-}
-
-void crypto_secure_free(void *ptr)
-{
+#ifdef USE_SECURE_MALLOC
 	if (CRYPTO_secure_malloc_initialized()) {
-		size_t psz = OPENSSL_secure_actual_size(ptr);
 		OPENSSL_secure_clear_free(ptr, psz);
 	}
+#elif defined(__OpenBSD__)
+    freezero(ptr, psz);
+#else
+    explicit_bzero(ptr, psz);
+    free(ptr);
+#endif
 }
 
 int crypto_fill_rand_buf(uint8_t *buf, size_t len)
@@ -421,4 +422,5 @@ int rnd_stream_xor(EVP_CIPHER_CTX *ctx, uint8_t *data, size_t len)
 int rnd_stream_close(EVP_CIPHER_CTX *ctx)
 {
 	EVP_CIPHER_CTX_free(ctx);
+    return 0;
 }

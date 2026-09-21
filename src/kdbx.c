@@ -204,10 +204,12 @@ void kdbx_init(KDBX *db)
 
 static void entry_free(KDBXEntry *e)
 {
+    char *value = NULL;
 	while (e->values_count--) {
 		free(e->values[e->values_count].key);
-		if (e->values[e->values_count].value)
-			crypto_secure_free(e->values[e->values_count].value);
+        value = e->values[e->values_count].value;
+        if (value)
+            crypto_secure_free(value, strlen(value) + 1);
 	}
 	free(e->values);
 	e->values = NULL;
@@ -311,6 +313,8 @@ int kdbx_generate_salts(KDBX *db)
 	ret = 0;
 gen_salts_fail:
 	fclose(fp);
+
+    return ret;
 }
 
 /* Entries */
@@ -341,6 +345,7 @@ int kdbx_entry_put_value(KDBXEntry *e, const char *key, const char *val)
 		return -1;
 
 	e->time_info.last_mod = time(NULL);
+    return 0;
 }
 
 char *kdbx_entry_get_value(KDBXEntry *e, const char *key)
@@ -360,11 +365,12 @@ char *kdbx_entry_get_value(KDBXEntry *e, const char *key)
 int kdbx_entry_set_value(KDBXEntry *e, size_t vidx, const char *val)
 {
 	if (vidx >= e->values_count)
-		return -1;
+        return -1;
 
 	if (val) {
 		size_t vlen = strlen(val) + 1;
-		e->values[vidx].value = crypto_secure_realloc(e->values[vidx].value, vlen);
+        crypto_secure_free(e->values[vidx].value, strlen(e->values[vidx].value) + 1);
+        e->values[vidx].value = crypto_secure_malloc(vlen);
 		memcpy(e->values[vidx].value, val, vlen);
 	}
 
@@ -1043,6 +1049,8 @@ static int read_hmac_block(KDBX *db, char **xml_buf, size_t *xml_buf_len, FILE *
 			goto decode_block_fail;
 		}
 		break;
+    case KDBX_SALSA20:
+        return -1;
 	}
 
 	// on decrypt successfull free the block_hmac_data
@@ -1806,6 +1814,8 @@ static int write_hmac_block(KDBX *db, char *xml_buf, size_t xml_buf_len, FILE *f
 				goto encode_block_fail;
 			}
 			break;
+        case KDBX_SALSA20:
+            return -1;
 		}
 	}
 
@@ -1968,6 +1978,8 @@ int kdbx_write(KDBX *db, const char *fpath, const char *password)
 			goto write_fail;
 		}
 		break;
+    case KDBX_SALSA20:
+        return -1;
 	}
 
 	if (fputc(3, fp) == EOF) {
