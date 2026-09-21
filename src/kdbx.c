@@ -384,11 +384,6 @@ int kdbx_entry_set_protected(KDBXEntry *e, size_t vidx, int protect)
 	return 0;
 }
 
-int kdbx_entry_get_protected_value(KDBX *db, KDBXEntry *e, size_t index, char *value_unpr)
-{
-	
-}
-
 /* Groups */
 KDBXGroup *kdbx_add_group(KDBX *db, const char *group_name)
 {
@@ -1021,7 +1016,6 @@ static int read_hmac_block(KDBX *db, char **xml_buf, size_t *xml_buf_len, FILE *
 	block_data = block_hmac_data + sizeof(field_len) + sizeof(block_id);
 	if (read_bytes(block_data, field_len, fp)) {
 		ret = ERR_KDBX_IO;
-		fprintf(stderr, "error read block %zu\n", block_id);
 		goto decode_block_fail;
 	}
 
@@ -1031,7 +1025,6 @@ static int read_hmac_block(KDBX *db, char **xml_buf, size_t *xml_buf_len, FILE *
 	crypto_hmac_key(hmac_key, db->master_salt, tx_key, tx_key_len, block_id);
 	hmac_256(hash, hmac_key, sizeof(hmac_key), block_hmac_data, block_hmac_data_len);
 	if (memcmp(hash, hash2, SHA256_DIGEST_LENGTH)) {
-		fprintf(stderr, "error verify hmac for block %zu\n", block_id);
 		ret = ERR_KDBX_VERIFY_HMAC;
 		goto decode_block_fail;
 	}
@@ -1040,7 +1033,6 @@ static int read_hmac_block(KDBX *db, char **xml_buf, size_t *xml_buf_len, FILE *
 	switch (db->encr) {
 	case KDBX_AES256:
 	if ((plaintext_len = decrypt_aes256_cbc(plaintext, block_data, field_len, db->iv, enc_key)) <= 0) {
-			fprintf(stderr, "error decrypt aes256cbc block %zu", block_id);
 			ret = ERR_KDBX_DECRYPT;
 			goto decode_block_fail;
 		}
@@ -1569,8 +1561,7 @@ int kdbx_read(KDBX *db, const char *fpath, const char *password)
 	SHA256(header_data, header_len, hash);
 	if (memcmp(hash, hash2, sizeof(hash2))) {
 		free(header_data);
-		fprintf(stderr, "error verify header hash\n");
-		ret = ERR_KDBX_IO;
+        ret = ERR_KDBX_VERIFY_HASH;
 		goto read_fail;
 	}
 
@@ -1586,7 +1577,6 @@ int kdbx_read(KDBX *db, const char *fpath, const char *password)
 	hmac_256(hash, hmac_key, sizeof(hmac_key), header_data, header_len);
 	free(header_data);
 	if (memcmp(hash, hash2, SHA256_DIGEST_LENGTH)) {
-		fprintf(stderr, "error verify header HMAC\n");
 		ret = ERR_KDBX_VERIFY_HMAC;
 		goto read_fail;
 	}
@@ -1614,8 +1604,6 @@ int kdbx_read(KDBX *db, const char *fpath, const char *password)
 			return ret;
 		}
 	}
-
-	fprintf(stderr, "%ld, %s\n", xml_buf_len, xml_buf);
 
 	doc = xmlReadMemory(xml_buf, xml_buf_len, "keepass.xml", NULL, 0);
 	free(xml_buf);
@@ -1662,7 +1650,6 @@ read_fail:
 
 void zerr(int ret, int line)
 {
-	fprintf(stderr, "zlib err at line %d, err=%d ", line, ret);
     switch (ret) {
     case Z_ERRNO:
         if (ferror(stdin))
@@ -1809,7 +1796,6 @@ static int write_hmac_block(KDBX *db, char *xml_buf, size_t xml_buf_len, FILE *f
 		switch (db->encr) {
 		case KDBX_AES256:
 		if ((block_data_len = encrypt_aes256_cbc(block_data, plaintext, plaintext_len, db->iv, enc_key)) <= 0) {
-				fprintf(stderr, "error encrypt aes256cbc block %zu", block_id);
 				ret = ERR_KDBX_ENCRYPT;
 				goto encode_block_fail;
 			}
@@ -1874,7 +1860,6 @@ static int write_xml_times(KDBXTimeInfo *info, xmlNode *root)
 		if (b64_encode((char*) out, sizeof(out), (uint8_t*) &time, sizeof(time)) < 0) {
 			return -1;
 		}
-		fprintf(stderr, "Expiry encoded %s\n", out);
 		child = xmlNewChild(root, NULL, BAD_CAST "ExpiryTime", NULL);
 		xmlNodeSetContent(child, BAD_CAST out);
 	}	
@@ -2190,7 +2175,6 @@ int kdbx_write(KDBX *db, const char *fpath, const char *password)
 	xmlDocDumpFormatMemory(doc, &xml_buf, &xml_buf_len, 0);
 	xmlFreeDoc(doc);
 
-	fprintf(stderr, "write! %s", xml_buf);
 	uint8_t final_key[SHA256_DIGEST_LENGTH];
 	crypto_final_key(final_key, db->master_salt, tx_key, tx_key_len);
 

@@ -871,40 +871,6 @@ static int create_db(struct kpt_ctx *ctx, KDBX *db, const char *dbpath)
 	return 0;
 }
 
-#if 0
-int main(int argc, char **argv)
-{
-
-	switch (argc) {
-	case 1:
-		break;
-	case 2:
-		KDBX db;
-		kdbx_init(&db);
-		int ret = kdbx_read(&db, argv[1], "mcducktest");
-		fprintf(stderr, "kdf=%d, kdf_salt_len=%zu, parall=%d, memory=%ld, version=0x%x, iters=%ld, inner=%d\n", 
-				db.kdf_type, db.kdf_salt_len, db.kdf.kdf_argon2.parallelism, db.kdf.kdf_argon2.memory, db.kdf.kdf_argon2.version, db.kdf.kdf_argon2.iterations
-				, db.inner_encr);
-
-		size_t i, j, k;
-		for (i = 0; i < db.groups_count; i++) {
-			fprintf(stderr, "g[%zu] = %s\n", i, db.groups[i].name);
-			for (j = 0; j < db.groups[i].entries_count; j++) {
-				fprintf(stderr, "\t-------------\n");
-				for (k = 0; k < db.groups[i].entries[j].values_count; k++) {
-				
-					fprintf(stderr, "\t%s = %s\n", db.groups[i].entries[j].values[k].key, db.groups[i].entries[j].values[k].value);
-				}
-			}
-		}
-		
-		// db.compressed = 0;
-	ret =	kdbx_write(&db, "out.kdbx", "mcducktest");
-		fprintf(stderr, "\n REsult %d\n", ret);
-		break;
-	}
-}
-#else
 int main(int argc, char **argv)
 {
 	if (argc == 2 && !strcmp(argv[1], "-h")) {
@@ -1076,5 +1042,3 @@ int main(int argc, char **argv)
 	endwin();
 	return EXIT_SUCCESS;
 }
-
-#endif

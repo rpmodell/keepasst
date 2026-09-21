@@ -160,7 +160,6 @@ int kdbx_entry_put_value(KDBXEntry *e, const char *key, const char *val);
 char *kdbx_entry_get_value(KDBXEntry *e, const char *key);
 int kdbx_entry_set_value(KDBXEntry *e, size_t vidx, const char *val);
 int kdbx_entry_set_protected(KDBXEntry *e, size_t vidx, int protect);
-int kdbx_entry_get_protected_value(KDBX *db, KDBXEntry *e, size_t index, char *value_unpr);
 KDBXEntry *kdbx_group_add_entry(KDBXGroup *group, int expires);
 int kdbx_group_remove_entry(KDBXGroup *group, size_t index);
 
