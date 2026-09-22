@@ -15,7 +15,7 @@ kdbx.o: $(SRC_DIR)/kdbx.c $(SRC_DIR)/kdbx.h
 crypto.o: $(SRC_DIR)/crypto.c $(SRC_DIR)/crypto.h
 	$(CC) $(CFLAGS) -c -o $@ $<
 
-keepasst.o: $(SRC_DIR)/keepasst.c # $(SRC_DIR)/crypto.h
+keepasst.o: $(SRC_DIR)/keepasst.c $(SRC_DIR)/config.h
 	$(CC) $(CFLAGS) -c -o $@ $<
 
 .PHONY: clean

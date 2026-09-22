@@ -29,6 +29,7 @@
 
 #include "kdbx.h"
 #include "crypto.h"
+#include "config.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -53,7 +54,6 @@
 #include <sys/resource.h>
 #endif
 
-#include <curses.h>
 #include <openssl/crypto.h>
 
 #define PASS_BUF_MAX 512
@@ -919,8 +919,11 @@ int main(int argc, char **argv)
 	cbreak();
 	noecho();
 
-	start_color();
-	init_pair(1, COLOR_WHITE, COLOR_BLUE);
+    if (!has_colors())
+        die("%s: error terminal does not support color", argv[0]);
+
+    start_color();
+    init_pair(1, KPT_FG_COLOR, KPT_BG_COLOR);
 	init_pair(2, COLOR_BLUE, COLOR_BLACK);
 	init_pair(3, COLOR_WHITE, COLOR_RED);
 
@@ -944,7 +947,7 @@ int main(int argc, char **argv)
 	case 2:
 		if (stat(argv[1], &statbuf)) {
 			if (errno == ENOENT) {
-				if (create_db(&ctx, &db, NULL))
+                if (create_db(&ctx, &db, argv[1]))
 					die("error: cannot create db: %s", strerror(errno));
 			} else {
 				die("error: cannot open file: %s, ", strerror(errno));
@@ -1059,6 +1062,7 @@ int main(int argc, char **argv)
 				refresh_ctx(&ctx, &db);
 
 			break;
+        case 'q':
 		case CTRL('c'):
 			quit(&ctx, &db);
 			break;
