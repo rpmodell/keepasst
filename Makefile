@@ -25,6 +25,7 @@ clean:
 .PHONY: install
 install:
 	install -m 0755 ./$(TARGET) /usr/local/bin/
-	install -m 0664 ./keepasst.1 /usr/local/share/man/man1/
+	-install -m 0664 ./keepasst.1 /usr/local/share/man/man1/
+	-install -m 0664 ./keepasst.1 /usr/local/man/man1/
 
 
