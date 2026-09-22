@@ -20,8 +20,8 @@ credentials.
 
 - [libargon2](https://github.com/P-H-C/phc-winner-argon2)
 - [libxml2](https://gitlab.gnome.org/GNOME/libxml2)
-- [zlib](https://zlib.net/) — compression
-- [OpenSSL](https://www.openssl.org/)
+- [zlib](https://zlib.net/)
+- [OpenSSL](https://www.openssl.org/) / [LibreSSL](https://www.libressl.org/)
 - [ncurses](https://invisible-island.net/ncurses/)
 
 ### Installing dependencies
@@ -53,7 +53,7 @@ pkg install argon2 libxml2 zlib openssl ncurses
 **OpenBSD**
 
 ```sh
-pkg_add argon2 libxml2 zlib openssl ncurses
+pkg_add argon2 libxml2 zlib
 ```
 
 ## Building
