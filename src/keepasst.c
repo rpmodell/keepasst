@@ -252,7 +252,9 @@ static int head_refresh(struct kpt_ctx *ctx)
 static int groups_refresh(WINDOW *win, int current, int sel, KDBX *db)
 {
 	size_t i;
-	int j, xmax = 0, pad = 0;
+    int j, xmax = 0, pad = 0, tlen = 0;
+    char fmt[16];
+    memset(fmt, 0, sizeof(fmt));
 
 	xmax = getmaxx(win);
 	werase(win);
@@ -263,8 +265,16 @@ static int groups_refresh(WINDOW *win, int current, int sel, KDBX *db)
 		if (i == sel) 
 			SEL_ATTRON(win, current, WGROUPS);
 
-		pad = xmax - strlen(db->groups[i].name);
-		mvwprintw(win, i + 1, 0, "%s", db->groups[i].name);
+        pad = 0;
+        tlen = strlen(db->groups[i].name);
+        if (xmax - tlen < 4) {
+            snprintf(fmt, sizeof(fmt), "%%.%ds...", xmax - 4);
+        } else {
+            snprintf(fmt, sizeof(fmt), "%%s");
+            pad = xmax - tlen - 1;
+        }
+        pad = xmax - tlen;
+        mvwprintw(win, i + 1, 0, fmt, db->groups[i].name);
 		
 		for (j = 0; j < pad; j++)
 			waddch(win, ' ');
@@ -304,9 +314,11 @@ static inline int groups_loop(struct kpt_ctx *ctx, KDBX *db, int key)
 
 static int entries_refresh(WINDOW *win, KDBXGroup *group, int current, int sel)
 {
-	size_t i;
-	int j, xmax = 0, ymax = 0, pad = 0;
+    size_t i;
+    int j, xmax = 0, ymax = 0, pad = 0, tlen = 0;
 	char *title = NULL;
+    char fmt[16];
+    memset(fmt, 0, sizeof(fmt));
 
 	xmax = getmaxx(win);
 	ymax = getmaxy(win);
@@ -326,8 +338,15 @@ static int entries_refresh(WINDOW *win, KDBXGroup *group, int current, int sel)
 
 		title = kdbx_entry_get_value(&group->entries[i], "Title");
 		if (title) {
-			pad = xmax - strlen(title) - 1;
-			mvwprintw(win, i + 1, 1, "%s", title);
+            tlen = strlen(title);
+            pad = 0;
+            if (xmax - tlen < 4) {
+                snprintf(fmt, sizeof(fmt), "%%.%ds...", xmax - 4);
+            } else {
+                snprintf(fmt, sizeof(fmt), "%%s");
+                pad = xmax - tlen - 1;
+            }
+            mvwprintw(win, i + 1, 1, fmt, title);
 		} else {
 			pad = xmax - 5 - 1 - 2;
 			mvwprintw(win, i + 1, 1, "Entry%zu", i + 1);
