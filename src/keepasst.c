@@ -223,9 +223,11 @@ int input_prompt(WINDOW *win, const char *title, const char *prompt, int hidden,
 			}
 			break;
 		default:
-			if (i < 36)
-				waddch(win, hidden ? '*' : ch);
-			out[i++] = ch;
+            if (isprint(ch)) {
+                if (i < 36)
+                    waddch(win, hidden ? '*' : ch);
+                out[i++] = ch;
+            }
 			break;
 		}
 
@@ -474,9 +476,10 @@ static int entry_value_edit(WINDOW *win, KDBXEntry *entry, int current, int sel)
 			wmove(win, sel + 1, start + i);
 			break;
 		default:
-			waddch(win, c);
-
-			out[i++] = c;
+            if ((i + 1 + start + len) < xmax && isprint(c)) {
+                waddch(win, protect ? '*' : c);
+                out[i++] = c;
+            }
 			break;
 		}
 
