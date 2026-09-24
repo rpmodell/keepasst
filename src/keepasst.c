@@ -601,6 +601,8 @@ static int process_cmd(struct kpt_ctx *ctx, KDBX *db)
 			group = kdbx_add_group(db, tok);
 			add_default_entry(group, "Default");
 			ctx->group_sel = 0;
+            ctx->entry_sel = 0;
+            ctx->value_sel = 0;
 		} else if (!strcmp(tok, "del")) {
 			tok = strtok_r(NULL, " ", &saveptr);
 			if (db->groups_count == 1) {
@@ -623,7 +625,9 @@ static int process_cmd(struct kpt_ctx *ctx, KDBX *db)
 				}
 				break;
 			}
-			ctx->group_sel = 0;
+            ctx->group_sel = 0;
+            ctx->entry_sel = 0;
+            ctx->value_sel = 0;
 		} else if (!strcmp(tok, "rename")) {
 			tok = strtok_r(NULL, " ", &saveptr);
 			tok1 = strtok_r(NULL, " ", &saveptr);
@@ -700,12 +704,15 @@ static int process_cmd(struct kpt_ctx *ctx, KDBX *db)
 			
 			add_default_entry(group, tok);
 			ctx->entry_sel = 0;
+            ctx->value_sel = 0;
 		} else if (!strcmp(tok, "del")) {
 			if (group->entries_count > 1) {
 				kdbx_group_remove_entry(group, ctx->entry_sel);
 			} else {
 				return -1;
 			}
+            ctx->entry_sel = 0;
+            ctx->value_sel = 0;
 		} else if (!strcmp(tok, "setexpiry")) {
 			struct tm tm;
 			memset(&tm, 0, sizeof(struct tm));
