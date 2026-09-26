@@ -224,7 +224,7 @@ int kdf_derive_kdfaes(uint8_t *out, uint8_t *salt, size_t salt_len, const char *
 	EVP_CIPHER_CTX *ctx = NULL;
     int len = 0, key_len = SHA256_DIGEST_LENGTH;
 	
-	uint8_t buf[SHA256_DIGEST_LENGTH+16], key[SHA256_DIGEST_LENGTH+16];
+    uint8_t buf[SHA256_DIGEST_LENGTH], key[SHA256_DIGEST_LENGTH];
 	SHA256((const uint8_t*) password, strlen(password), buf);
 	SHA256(buf, SHA256_DIGEST_LENGTH, key);
 
@@ -234,15 +234,15 @@ int kdf_derive_kdfaes(uint8_t *out, uint8_t *salt, size_t salt_len, const char *
 	if(!(ctx = EVP_CIPHER_CTX_new()))
 		goto fail;
 
-	while (rounds--) {
-		if (EVP_EncryptInit_ex(ctx, EVP_aes_256_ecb(), NULL, salt, NULL) != 1)
-			goto fail;
+    EVP_CIPHER_CTX_set_padding(ctx, 0);
+    if (EVP_EncryptInit_ex(ctx, EVP_aes_256_ecb(), NULL, salt, NULL) != 1)
+        goto fail;
 
+    while (rounds--) {
 		if (EVP_EncryptUpdate(ctx, buf, &len, key, key_len) != 1)
 			goto fail;
 
 		key_len = len;
-
 		if (EVP_EncryptFinal_ex(ctx, buf + len, &len) != 1) 
 			goto fail;
 	
