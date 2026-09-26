@@ -218,8 +218,8 @@ int input_prompt(WINDOW *win, const char *title, const char *prompt, int hidden,
 
 			out[i] = '\0';
 			if (i < 36) {
-				mvwaddch(win, 2, 1 + i, ' ');
-				wmove(win, 2, 1 + i);
+                mvwaddch(win, 3, i + 2, ' ');
+                wmove(win, 3, i + 2);
 			}
 			break;
 		default:
@@ -446,7 +446,7 @@ static int entry_refresh(WINDOW *win, KDBXEntry *entry, int current, int hide, i
 	return 0;
 }
 
-static int entry_value_edit(WINDOW *win, KDBXEntry *entry, int current, int sel)
+static int entry_value_edit(WINDOW *win, KDBXEntry *entry, int current, int sel, int hide)
 {
 	int i, xmax = 0, start = 0, len = 0, protect = 0;
 	xmax = getmaxx(win);
@@ -477,7 +477,7 @@ static int entry_value_edit(WINDOW *win, KDBXEntry *entry, int current, int sel)
 			break;
 		default:
             if ((i + 1 + start + len) < xmax && isprint(c)) {
-                waddch(win, protect ? '*' : c);
+                waddch(win, protect && hide ? '*' : c);
                 out[i++] = c;
             }
 			break;
@@ -509,7 +509,7 @@ static inline int process_entry(struct kpt_ctx *ctx, KDBX *db, int key)
 		ctx->hide_protected = !ctx->hide_protected;
 		break;	
 	case 'e':
-		entry_value_edit(ctx->entry_win, entry, ctx->current, ctx->value_sel);
+        entry_value_edit(ctx->entry_win, entry, ctx->current, ctx->value_sel, ctx->hide_protected);
 		entries_refresh(ctx->entries_win, group, ctx->current, ctx->entry_sel);
 		break;
 	case 'p':
@@ -581,7 +581,7 @@ static int process_cmd(struct kpt_ctx *ctx, KDBX *db)
 	char *saveptr = NULL;
 	char *tok = NULL, *tok1 = NULL;
 	ssize_t index;
-	int i, ch, ret = 0;
+    int i, j, ch, len = 1, ret = 0;
 	KDBXGroup *group = NULL;
 
 	wclear(ctx->status_win);
@@ -594,16 +594,36 @@ static int process_cmd(struct kpt_ctx *ctx, KDBX *db)
 			break;
 		} else if (ch == 27) {
 			return 0;
-		} else if (ch == KEY_BACKSPACE) {
-			if ((--i) < 0)
-				i = 0;
+        } else if (ch == KEY_LEFT) {
+            if ((--i) < 0)
+                i = 0;
 
-			cmdbuf[i] = '\0';
-			mvwaddch(ctx->status_win, 0, i + 1, ' ');
+            wmove(ctx->status_win, 0, i + 1);
+        } else if (ch == KEY_RIGHT) {
+            if ((++i) >= len)
+                i = len - 1;
+
+            wmove(ctx->status_win, 0, i + 1);
+		} else if (ch == KEY_BACKSPACE) {
+            if ((--i) < 0) {
+				i = 0;
+                continue;
+            }
+
+            for (j = i; j < len; j++)
+                cmdbuf[j] = cmdbuf[j + 1];
+
+            cmdbuf[len--] = '\0';
+            mvwprintw(ctx->status_win, 0, i + 1, "%s ", cmdbuf + i);
 			wmove(ctx->status_win, 0, i + 1);
 		} else if (isprint(ch)) {
-			cmdbuf[i++] = ch;
-			waddch(ctx->status_win, ch);
+            for (j = len - 1; j >= i; j--)
+                cmdbuf[j + 1] = cmdbuf[j];
+
+            cmdbuf[i++] = ch;
+            len++;
+            mvwprintw(ctx->status_win, 0, 1, "%s", cmdbuf);
+            wmove(ctx->status_win, 0, i + 1);
 		}
 	}
 
