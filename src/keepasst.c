@@ -291,6 +291,7 @@ static int groups_refresh(WINDOW *win, int current, int sel, KDBX *db)
 
 static inline int groups_loop(struct kpt_ctx *ctx, KDBX *db, int key)
 {
+    KDBXGroup *group = NULL;
 	switch (key) {
 	case KEY_UP:
 		ctx->group_sel = MAX(0, ctx->group_sel - 1);
@@ -301,7 +302,8 @@ static inline int groups_loop(struct kpt_ctx *ctx, KDBX *db, int key)
 		ctx->entry_sel = 0;
 		break;
 	case 'a':
-		kdbx_add_group(db, "Group");
+        group = kdbx_add_group(db, "Group");
+        add_default_entry(group, "Default");
 		ctx->group_sel = 0;
 		break;
 	case 'd':
@@ -368,7 +370,7 @@ static int entries_refresh(WINDOW *win, KDBXGroup *group, int current, int sel)
 
 static inline int process_entries(struct kpt_ctx *ctx, KDBX *db, int key)
 {
-	KDBXGroup *group = &db->groups[ctx->group_sel];
+    KDBXGroup *group = kdbx_get_group(db, ctx->group_sel);
 	switch (key) {
 	case KEY_UP:
 		ctx->entry_sel = MAX(0, ctx->entry_sel - 1);
@@ -495,8 +497,8 @@ static int entry_value_edit(WINDOW *win, KDBXEntry *entry, int current, int sel,
 
 static inline int process_entry(struct kpt_ctx *ctx, KDBX *db, int key)
 {
-	KDBXGroup *group = &db->groups[ctx->group_sel];
-	KDBXEntry *entry = &group->entries[ctx->entry_sel];
+    KDBXGroup *group = kdbx_get_group(db, ctx->group_sel);
+    KDBXEntry *entry = kdbx_group_get_entry(group, ctx->entry_sel);
 	switch (key) {
 	case KEY_UP:
 		ctx->value_sel = MAX(0, ctx->value_sel - 1);
@@ -519,11 +521,12 @@ static inline int process_entry(struct kpt_ctx *ctx, KDBX *db, int key)
 	return entry_refresh(ctx->entry_win, entry, ctx->current, ctx->hide_protected, ctx->value_sel);
 }
 
-static inline void refresh_ctx(struct kpt_ctx *ctx, KDBX *db)
+static void refresh_ctx(struct kpt_ctx *ctx, KDBX *db)
 {
+    KDBXGroup *group = kdbx_get_group(db, ctx->group_sel);
 	groups_refresh(ctx->groups_win, ctx->current, ctx->group_sel, db);
-	entries_refresh(ctx->entries_win, &db->groups[ctx->group_sel], ctx->current, ctx->entry_sel);
-	entry_refresh(ctx->entry_win, &db->groups[ctx->group_sel].entries[ctx->entry_sel], ctx->current, 1, ctx->value_sel);
+    entries_refresh(ctx->entries_win, group, ctx->current, ctx->entry_sel);
+    entry_refresh(ctx->entry_win, kdbx_group_get_entry(group, ctx->entry_sel), ctx->current, 1, ctx->value_sel);
 	head_refresh(ctx);
 }
 
@@ -583,6 +586,7 @@ static int process_cmd(struct kpt_ctx *ctx, KDBX *db)
 	ssize_t index;
     int i, j, ch, len = 1, ret = 0;
 	KDBXGroup *group = NULL;
+    KDBXEntry *entry = NULL;
 
 	wclear(ctx->status_win);
 	wbkgd(ctx->status_win, COLOR_PAIR(1));
@@ -738,7 +742,8 @@ static int process_cmd(struct kpt_ctx *ctx, KDBX *db)
 		}
 	} else if (!strcmp(tok, "entry")) {
 		tok = strtok_r(NULL, " ", &saveptr);
-		group = &db->groups[ctx->group_sel];
+        group = kdbx_get_group(db, ctx->group_sel);
+        entry = kdbx_group_get_entry(group, ctx->entry_sel);
 		if (!strcmp(tok, "add")) {
 			tok = strtok_r(NULL, " ", &saveptr);
 			if (!tok)
@@ -763,9 +768,9 @@ static int process_cmd(struct kpt_ctx *ctx, KDBX *db)
 				set_error(ctx, "invalid datetime", tok);
 				return -1;
 			}
-			group->entries[ctx->entry_sel].time_info.expiration = mktime(&tm);
+            entry->time_info.expiration = mktime(&tm);
 		} else if (!strcmp(tok, "unsetexpiry")) {
-			group->entries[ctx->entry_sel].time_info.expiration = 0;
+            entry->time_info.expiration = 0;
 		} else {
 			set_error(ctx, "error unrecognized entry command %s", tok);
 			return -1;
@@ -838,6 +843,8 @@ static int process_cmd(struct kpt_ctx *ctx, KDBX *db)
 
 static int status_refresh(struct kpt_ctx *ctx, KDBX *db)
 {
+    KDBXGroup *group = NULL;
+    KDBXEntry *entry = NULL;
 	if (ctx->error) { 
 		wclear(ctx->status_win);
 		wbkgd(ctx->status_win, COLOR_PAIR(3));
@@ -847,19 +854,25 @@ static int status_refresh(struct kpt_ctx *ctx, KDBX *db)
 		ctx->error = 0;
 	}
 	
+    group = kdbx_get_group(db, ctx->group_sel);
+    entry = kdbx_group_get_entry(group, ctx->entry_sel);
 	wclear(ctx->status_win);
 	wbkgd(ctx->status_win, COLOR_PAIR(1));
 	wprintw(ctx->status_win, "[q] quit | [w] Write | ");
 	switch (ctx->current) {
 	case WGROUPS:
-		wprintw(ctx->status_win, "[a] Add Group | [d] Delete Group");
+        wprintw(ctx->status_win, "[a] Add Group");
+        if (ctx->group_sel > 0 && db->groups_count > 0)
+            wprintw(ctx->status_win, " | [d] Delete Group");
 		break;
 	case WENTRIES:
-		wprintw(ctx->status_win, "[a] Add Entry | [d] Delete Entry");
+        wprintw(ctx->status_win, "[a] Add Entry");
+        if (group->entries_count > 0)
+             wprintw(ctx->status_win, "| [d] Delete Entry");
 		break;
 	case WENTRY:
 		wprintw(ctx->status_win, "[e] Edit Value | [p] Toggle hidden");
-		if (db->groups[ctx->group_sel].entries[ctx->entry_sel].values[ctx->value_sel].protect) {
+        if (entry->values[ctx->value_sel].protect) {
 			wprintw(ctx->status_win, " | [s] Show Value");
 		}
 		break;

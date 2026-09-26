@@ -489,6 +489,17 @@ KDBXEntry *kdbx_group_add_entry(KDBXGroup *group, int expires)
 	return e;
 }
 
+KDBXEntry *kdbx_group_get_entry(KDBXGroup *group, size_t i)
+{
+    if (!group)
+        return NULL;
+
+    if (i >= group->entries_count)
+        return NULL;
+
+    return &group->entries[i];
+}
+
 int kdbx_group_remove_entry(KDBXGroup *group, size_t index)
 {
 	if (index >= group->entries_count) {

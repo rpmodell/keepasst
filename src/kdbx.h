@@ -164,6 +164,7 @@ char *kdbx_entry_get_value(KDBXEntry *e, const char *key);
 int kdbx_entry_set_value(KDBXEntry *e, size_t vidx, const char *val);
 int kdbx_entry_set_protected(KDBXEntry *e, size_t vidx, int protect);
 KDBXEntry *kdbx_group_add_entry(KDBXGroup *group, int expires);
+KDBXEntry *kdbx_group_get_entry(KDBXGroup *group, size_t i);
 int kdbx_group_remove_entry(KDBXGroup *group, size_t index);
 
 #endif
