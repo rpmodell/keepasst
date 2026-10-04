@@ -62,6 +62,7 @@
 #define CTRL(x) ((x) & 0x1f)
 #define SEL_ATTRON(W, C, T) wattron(W, C == T ? COLOR_PAIR(1) : A_REVERSE)
 #define SEL_ATTROFF(W, C, T) wattroff(W, C == T ? COLOR_PAIR(1) : A_REVERSE)
+#define VALUE_STRLEN(S) ((S) ? strlen(S) : 0)
 
 enum wintype {
 	WGROUPS, WENTRIES, WENTRY
@@ -397,6 +398,7 @@ static inline int process_entries(struct kpt_ctx *ctx, KDBX *db, int key)
 static int entry_refresh(WINDOW *win, KDBXEntry *entry, int current, int hide, int sel)
 {
 	size_t i;
+    char *value = NULL;
 	int j, vlen = 0, xmax = 0, ymax = 0, pad = 0;
 	xmax = getmaxx(win);
 	ymax = getmaxy(win);
@@ -427,13 +429,14 @@ static int entry_refresh(WINDOW *win, KDBXEntry *entry, int current, int hide, i
 		 	waddch(win, ' ');
 		
 		pad = xmax - 15;
-		vlen = strlen(entry->values[i].value);
+        value = entry->values[i].value;
+        vlen = VALUE_STRLEN(value);
 		if (entry->values[i].protect && (hide || i != sel)) {
 			wmove(win, i + 1, 15);
 			for (j = 0; j < vlen; j++)
 		 		waddch(win, '*');		
 		} else {
-			mvwprintw(win, i + 1, 15, "%s", entry->values[i].value);
+            mvwprintw(win, i + 1, 15, "%s", value ? value : "");
 		}
 		
 		pad -= vlen;
@@ -454,7 +457,7 @@ static int entry_value_edit(WINDOW *win, KDBXEntry *entry, int current, int sel,
 	xmax = getmaxx(win);
 	start = 15;
 	protect = entry->values[sel].protect;
-	len = strlen(entry->values[sel].value);
+    len = VALUE_STRLEN(entry->values[sel].value);
 	wmove(win, sel + 1, start + len);
 	SEL_ATTRON(win, current, WENTRY);
 

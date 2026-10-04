@@ -74,6 +74,7 @@
 
 #define IV_LEN(ET) (ET == KDBX_AES256 ? AES256_IV_LEN : CHACHA20_IV_LEN)
 #define INNER_KEY_LEN(ET) (ET == KDBX_SALSA20 ? 32 :64)
+#define GET_XML_CHILD_CONTENT(O) ((O)->children ? xmlNodeGetContent((O)->children) : NULL)
 
 #define VARIANT_SIZE(NAME, L) (1 + 2 * sizeof(int32_t) + strlen(NAME) + L)
 #define VARIANT_SET_UINT32(V, NAME, VALUE) do {\
@@ -1219,7 +1220,7 @@ static time_t decode_xml_time(xmlNode *node)
 		return 0;
 	}
 
-	xmlChar *tstr = xmlNodeGetContent(node->children);
+    xmlChar *tstr = GET_XML_CHILD_CONTENT(node);
 	if (!tstr) {
 		return 0;
 	}
@@ -1250,7 +1251,7 @@ static int read_xml_times(KDBXTimeInfo *tinfo, xmlNode *root)
 	tnode = xml_first_child(root, "Expires");
 	tinfo->expiration = 0;
 	if (tnode) {
-		xmlChar *tstr = xmlNodeGetContent(tnode->children);
+        xmlChar *tstr = GET_XML_CHILD_CONTENT(tnode);
 		tinfo->expiration = tstr && !xmlStrcmp(tstr, (xmlChar*) "True");
 		if (tinfo->expiration) {
 			tnode = xml_first_child(root, "ExpiryTime");
@@ -1280,14 +1281,14 @@ static int read_xml_entry_values(KDBXEntry *entry, EVP_CIPHER_CTX *rnd, xmlNode 
 			return ERR_KDBX_INVALID_XML;
 		}
 
-		txt1 = xmlNodeGetContent(xml_key->children);
+        txt1 = GET_XML_CHILD_CONTENT(xml_key);
 
 		txt2 = xmlGetProp(xml_obj, (xmlChar*) "Protected");
 		protect = txt2 && !xmlStrcmp(txt2, (xmlChar*) "True");
 		xmlFree(txt2);
 		
-		txt2 = xmlNodeGetContent(xml_obj->children);
-		if (protect) {
+        txt2 = GET_XML_CHILD_CONTENT(xml_obj);
+        if (txt2 && protect) {
 			temp = txt2;
 			len = strlen((char*) temp);
 			txt2 = (xmlChar*) malloc((B64_DECODED_LEN(len) + 1) * sizeof(xmlChar));
@@ -1329,7 +1330,7 @@ static int read_xml_group(KDBX *db, EVP_CIPHER_CTX *rnd, xmlNode *root)
 
 	// Read group name
 	xmlChar *txt1 = NULL;
-	group = kdbx_add_group(db, (char*) (txt1 = xmlNodeGetContent(xml_obj->children)));
+    group = kdbx_add_group(db, (char*) (txt1 = GET_XML_CHILD_CONTENT(xml_obj)));
 	xmlFree(txt1);
 	
 	xml_obj = xml_first_child(root, "Times");
