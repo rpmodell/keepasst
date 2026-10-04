@@ -462,10 +462,11 @@ static int entry_value_edit(WINDOW *win, KDBXEntry *entry, int current, int sel,
 	SEL_ATTRON(win, current, WENTRY);
 
 	char out[2048];
-	memset(out, 0, sizeof(out));
 	int c = 0;
 	int outlen = sizeof(out);
 	i = len;
+    memset(out, 0, sizeof(out));
+    memcpy(out, entry->values[sel].value, len);
 	while (i >= 0 && i < outlen) {
 		c = wgetch(win);
 		if (c == '\n')
@@ -504,9 +505,11 @@ static inline int process_entry(struct kpt_ctx *ctx, KDBX *db, int key)
     KDBXEntry *entry = kdbx_group_get_entry(group, ctx->entry_sel);
 	switch (key) {
 	case KEY_UP:
+        ctx->hide_protected = 1;
 		ctx->value_sel = MAX(0, ctx->value_sel - 1);
 		break;		
 	case KEY_DOWN:
+        ctx->hide_protected = 1;
 		ctx->value_sel = MIN(entry->values_count - 1, ctx->value_sel + 1);		
 		break;
 	case 's':
